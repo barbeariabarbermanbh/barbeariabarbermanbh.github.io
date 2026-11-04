@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Barbearia BarbermaN · Caiçaras, Belo Horizonte</title>
+<meta name="description" content="Barbearia BarbermaN no Caiçaras, BH. Agende seu horário, confira os preços e acompanhe seu cartão fidelidade: a cada 10 cortes, 1 é por nossa conta.">
+<meta name="theme-color" content="#1F1F21">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Barbearia BarbermaN">
+<meta property="og:description" content="Agende seu horário e acompanhe seu cartão fidelidade: a cada 10 cortes, 1 é por nossa conta.">
+<meta property="og:image" content="https://barbeariabarbermanbh.github.io/img/og.jpg">
+<meta property="og:url" content="https://barbeariabarbermanbh.github.io/">
+<meta property="og:locale" content="pt_BR">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="img/icone.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="img/icone-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rye&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+<main class="pagina">
+  <header class="hero">
+    <div class="marca">
+      <div class="mascote" id="logo"></div>
+      <div class="sub">BARBEARIA</div>
+      <h1 class="nome">BarbermaN</h1>
+    </div>
+    <p class="local" id="bairro"></p>
+  </header>
+
+  <div class="acoes">
+    <a class="acao-card destaque" href="cartao/">
+      <div class="ic" id="ic-bigode"></div>
+      <div><strong>Meu Cartão Fidelidade</strong><span>A cada 10 cortes, 1 é por nossa conta</span></div>
+    </a>
+    <a class="acao-card" id="link-agendar" target="_blank" rel="noopener">
+      <div class="ic" style="background:#2b2f3a;color:#9DB8FF" id="ic-agenda"></div>
+      <div><strong>Agendar horário</strong><span>Escolha o serviço, o barbeiro e a hora</span></div>
+    </a>
+    <a class="acao-card" id="link-avaliar" target="_blank" rel="noopener">
+      <div class="ic estrela" id="ic-estrela"></div>
+      <div><strong>Avaliar no Google</strong><span>Leva 30 segundos e ajuda demais a gente</span></div>
+    </a>
+    <a class="acao-card" id="link-whats" target="_blank" rel="noopener">
+      <div class="ic" style="background:#16351f;color:#4ED17F" id="ic-whats"></div>
+      <div><strong>Chamar no WhatsApp</strong><span>Tire dúvidas com a gente</span></div>
+    </a>
+  </div>
+
+  <section class="bloco" aria-labelledby="t-servicos">
+    <h2 id="t-servicos">Serviços e preços</h2>
+    <ul class="servicos" id="servicos"></ul>
+    <p class="dica-servicos" id="pagamento"></p>
+  </section>
+
+  <section class="caixa info" aria-label="Onde estamos" style="margin-top:22px">
+    <div class="info-linha">📍<div><b>Endereço</b><a id="link-mapa" target="_blank" rel="noopener"></a></div></div>
+    <div class="info-linha">🕒<div><b>Horário</b><span id="horario" style="white-space:pre-line"></span></div></div>
+    <div class="info-linha" id="linha-insta" hidden>📸<div><b>Instagram</b><a id="link-insta" target="_blank" rel="noopener"></a></div></div>
+  </section>
+
+  <p class="rodape"><a href="barbeiro/">Área do barbeiro</a></p>
+</main>
+<script src="js/config.js"></script>
+<script src="js/util.js"></script>
+<script src="js/carregar.js" data-tela="inicio.js"></script>
+</body>
+</html>
