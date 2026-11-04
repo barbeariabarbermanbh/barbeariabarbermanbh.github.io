@@ -97,7 +97,13 @@ function pendenteAtual() {
   return { pendente: true, via: 'google', email, nome: usuario.displayName || '' };
 }
 
-const exigirEquipe = () => { if (!perfilEq || !perfilEq.ativo) throw erro('SEM_SESSAO', 'Faça login novamente.'); return perfilEq; };
+function provedorGoogle() {
+  const p = new GoogleAuthProvider();
+  p.setCustomParameters({ prompt: 'select_account' });
+  return p;
+}
+
+const exigirEquipe =() => { if (!perfilEq || !perfilEq.ativo) throw erro('SEM_SESSAO', 'Faça login novamente.'); return perfilEq; };
 const exigirDono = () => { const e = exigirEquipe(); if (e.papel !== 'dono') throw erro('PERMISSAO', 'Só o dono pode fazer isso.'); return e; };
 
 async function garantirLista() {
@@ -168,8 +174,7 @@ const D = {
   },
 
   async entrarGoogle() {
-    const p = new GoogleAuthProvider();
-    p.setCustomParameters({ prompt: 'select_account' });
+    const p = provedorGoogle();
     const instalado = window.matchMedia && matchMedia('(display-mode: standalone)').matches;
     try {
       if (instalado) { await signInWithRedirect(auth, p); return null; }
@@ -253,7 +258,10 @@ const D = {
   },
 
   // ---------------- EQUIPE ----------------
-  equipeLogada() { return perfilEq && perfilEq.ativo ? { id: perfilEq.id, nome: perfilEq.nome, papel: perfilEq.papel } : null; },
+  equipeLogada() {
+    return perfilEq && perfilEq.ativo
+      ? { id: perfilEq.id, nome: perfilEq.nome, papel: perfilEq.papel, google: String(perfilEq.login || '').includes('@') } : null;
+  },
 
   async entrarEquipe(login, senha) {
     login = String(login).trim().toLowerCase();
@@ -264,6 +272,15 @@ const D = {
     } catch (e) { const t = traduzAuth(e); if (t.codigo === 'LOGIN') t.message = 'Usuário ou senha incorretos.'; throw t; }
     if (!perfilEq) { await signOut(auth); throw erro('LOGIN', 'Esse acesso não é da equipe.'); }
     if (!perfilEq.ativo) { await signOut(auth); throw erro('INATIVO', 'Este acesso foi desativado pelo dono.'); }
+    return D.equipeLogada();
+  },
+  // Administração entrando com a conta Google da barbearia (só popup: precisa voltar para esta função)
+  async entrarEquipeGoogle() {
+    let r;
+    try { r = await signInWithPopup(auth, provedorGoogle()); } catch (e) { throw traduzAuth(e); }
+    await carregarPerfil(r.user);
+    if (!perfilEq) { await signOut(auth); throw erro('LOGIN', 'Essa conta Google não tem acesso à administração.'); }
+    if (!perfilEq.ativo) { await signOut(auth); throw erro('INATIVO', 'Este acesso foi desativado.'); }
     return D.equipeLogada();
   },
   sairEquipe() { perfilEq = null; signOut(auth); },
@@ -405,14 +422,23 @@ const D = {
 
   // ---------------- INSTALAÇÃO (página /configurar/) ----------------
   async instalado() { const s = await getDoc(doc(db, 'config', 'instalacao')); return s.exists(); },
-  async instalar(nome, login, senha) {
-    nome = String(nome).trim(); login = String(login).trim().toLowerCase();
-    if (!nome || !/^[a-z0-9._-]{2,30}$/.test(login)) throw erro('DADOS', 'Preencha o nome e um usuário simples (letras minúsculas, sem espaço).');
-    if (String(senha).length < 6) throw erro('SENHA_CURTA', 'A senha precisa ter pelo menos 6 caracteres.');
+  // Com senha: acesso por usuário. Sem login/senha (google=true): usa a conta Google escolhida no popup.
+  async instalar(nome, login, senha, google = false) {
+    nome = String(nome || '').trim(); login = String(login || '').trim().toLowerCase();
+    if (!nome) throw erro('DADOS', 'Preencha o nome.');
+    if (!google) {
+      if (!/^[a-z0-9._-]{2,30}$/.test(login)) throw erro('DADOS', 'Escolha um usuário simples (letras minúsculas, sem espaço).');
+      if (String(senha).length < 6) throw erro('SENHA_CURTA', 'A senha precisa ter pelo menos 6 caracteres.');
+    }
     if (await D.instalado()) throw erro('JA', 'O sistema já foi configurado.');
     let u;
-    try { u = (await createUserWithEmailAndPassword(auth, login + DOM_EQ, senha)).user; }
-    catch (e) { if (/email-already-in-use/.test(e.code)) throw erro('EXISTE', 'Esse usuário já existe.'); throw traduzAuth(e); }
+    if (google) {
+      try { u = (await signInWithPopup(auth, provedorGoogle())).user; } catch (e) { throw traduzAuth(e); }
+      login = u.email;
+    } else {
+      try { u = (await createUserWithEmailAndPassword(auth, login + DOM_EQ, senha)).user; }
+      catch (e) { if (/email-already-in-use/.test(e.code)) throw erro('EXISTE', 'Esse usuário já existe.'); throw traduzAuth(e); }
+    }
     const padrao = await D.config();
     const b = writeBatch(db);
     b.set(doc(db, 'config', 'instalacao'), { uid: u.uid, em: serverTimestamp() });

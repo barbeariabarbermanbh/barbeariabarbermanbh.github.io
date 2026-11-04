@@ -12,9 +12,9 @@
     await D.pronto();
     cfg = await D.config();
     eq = D.equipeLogada();
-    if (!eq) return U.telaLoginEquipe(app, (e) => { eq = e; iniciar(); }, 'Painel do dono');
+    if (!eq) return U.telaLoginEquipe(app, (e) => { eq = e; iniciar(); }, 'Painel da administração');
     if (eq.papel !== 'dono') {
-      app.innerHTML = `<main class="pagina"><div class="caixa"><h1 style="font-size:20px">Só o dono acessa o painel</h1>
+      app.innerHTML = `<main class="pagina"><div class="caixa"><h1 style="font-size:20px">Só a administração acessa o painel</h1>
         <p style="color:var(--texto-2)">Você entrou como barbeiro.</p><a class="btn btn-pri btn-bloco" href="../barbeiro/">Ir para a área do barbeiro</a></div></main>`;
       return;
     }
@@ -165,7 +165,7 @@
     const l = await D.equipe();
     conteudo().innerHTML = `<div class="grade-2">
       <div><div class="secao-titulo"><h2>Equipe</h2></div>
-        ${l.map((e) => `<div class="item-cli" style="margin-top:8px;cursor:default"><div class="dados"><b>${U.esc(e.nome)}</b><small>usuário: ${U.esc(e.login)} · ${e.papel === 'dono' ? 'Dono' : 'Barbeiro'}</small></div>
+        ${l.map((e) => `<div class="item-cli" style="margin-top:8px;cursor:default"><div class="dados"><b>${U.esc(e.nome)}</b><small>usuário: ${U.esc(e.login)} · ${e.papel === 'dono' ? 'Administração' : 'Barbeiro'}</small></div>
           ${e.id === eq.id ? '<span class="pilula">você</span>' : `<button class="btn ${e.ativo ? 'btn-sec' : 'btn-pri'}" data-at="${e.id}" data-v="${e.ativo ? 0 : 1}" style="min-height:40px">${e.ativo ? 'Desativar' : 'Reativar'}</button>`}</div>`).join('')}
       </div>
       <form class="caixa" id="f-novo" novalidate><h2 style="font-size:18px">Novo barbeiro</h2>

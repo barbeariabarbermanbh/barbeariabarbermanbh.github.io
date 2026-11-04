@@ -9,28 +9,35 @@
   await D.pronto();
   if (await D.instalado()) {
     app.innerHTML = `${marca}<div class="caixa"><h1 style="font-size:22px">Tudo pronto ✅</h1>
-      <p style="color:var(--texto-2)">O sistema já foi configurado. Entre pelo painel com o usuário do dono.</p>
+      <p style="color:var(--texto-2)">O sistema já foi configurado. Entre pelo painel com o acesso da administração.</p>
       <a class="btn btn-pri btn-bloco" href="../painel/">Ir para o painel</a></div>`;
     return;
   }
-  app.innerHTML = `${marca}<form class="caixa" id="f" novalidate>
+  app.innerHTML = `${marca}<div class="caixa">
       <h1 style="font-size:22px">Primeiro acesso</h1>
-      <p style="color:var(--texto-2);margin-top:0">Crie o acesso do <b style="color:var(--texto)">dono</b>. Com ele você entra no painel e cadastra os barbeiros.</p>
+      <p style="color:var(--texto-2);margin-top:0">Crie o acesso da <b style="color:var(--texto)">administração</b>. Com ele você entra no painel e cadastra os barbeiros.</p>
       <div class="msg-erro" id="erro" role="alert"></div>
-      <div class="campo"><label for="nome">Seu nome</label><input id="nome" autocomplete="name"></div>
-      <div class="campo"><label for="login">Usuário</label><input id="login" autocapitalize="none" value="dono"><span class="dica">Letras minúsculas, sem espaço.</span></div>
-      <div class="campo"><label for="senha">Senha</label><input id="senha" type="password" autocomplete="new-password"><span class="dica">Mínimo de 6 caracteres.</span></div>
-      <div class="campo"><label for="senha2">Repita a senha</label><input id="senha2" type="password" autocomplete="new-password"></div>
-      <button class="btn btn-pri btn-bloco">Criar acesso do dono</button>
-    </form>`;
-  U.$('#f').addEventListener('submit', async (e) => {
+      <div class="campo"><label for="nome">Nome que aparece no painel</label><input id="nome" value="Administração"></div>
+      <button class="btn btn-pri btn-bloco" id="google">Usar a conta Google da barbearia</button>
+      <p class="dica" style="margin:8px 0 0">Escolha <b>barbeariabarbermanbh@gmail.com</b> na janela do Google.</p>
+      <details style="margin-top:18px"><summary style="cursor:pointer;color:var(--texto-2)">Prefiro usuário e senha</summary>
+        <form id="f" novalidate style="margin-top:12px">
+          <div class="campo"><label for="login">Usuário</label><input id="login" autocapitalize="none" value="admin"><span class="dica">Letras minúsculas, sem espaço.</span></div>
+          <div class="campo"><label for="senha">Senha</label><input id="senha" type="password" autocomplete="new-password"><span class="dica">Mínimo de 6 caracteres.</span></div>
+          <div class="campo"><label for="senha2">Repita a senha</label><input id="senha2" type="password" autocomplete="new-password"></div>
+          <button class="btn btn-sec btn-bloco">Criar com usuário e senha</button>
+        </form></details>
+    </div>`;
+  const er = U.$('#erro');
+  const criar = async (botao, ...args) => {
+    er.textContent = ''; botao.disabled = true;
+    try { await D.instalar(U.$('#nome').value, ...args); location.href = '../painel/'; }
+    catch (err) { er.textContent = err.message; botao.disabled = false; }
+  };
+  U.$('#google').addEventListener('click', (e) => criar(e.currentTarget, '', '', true));
+  U.$('#f').addEventListener('submit', (e) => {
     e.preventDefault();
-    const er = U.$('#erro'); er.textContent = '';
     if (U.$('#senha').value !== U.$('#senha2').value) { er.textContent = 'As senhas não são iguais.'; return; }
-    const b = U.$('#f button'); b.disabled = true;
-    try {
-      await D.instalar(U.$('#nome').value, U.$('#login').value, U.$('#senha').value);
-      location.href = '../painel/';
-    } catch (err) { er.textContent = err.message; b.disabled = false; }
+    criar(U.$('#f button'), U.$('#login').value, U.$('#senha').value);
   });
 })();

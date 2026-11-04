@@ -15,7 +15,7 @@
   }
 
   function principal() {
-    app.innerHTML = `${U.barraTopo(eq, eq.papel === 'dono' ? '<a class="btn btn-sec" href="../painel/">Painel do dono</a>' : '')}
+    app.innerHTML = `${U.barraTopo(eq, eq.papel === 'dono' ? '<a class="btn btn-sec" href="../painel/">Painel</a>' : '')}
       <main class="pagina">
         <button class="btn btn-pri btn-bloco btn-grande" id="ler">${U.svgCamera()} Ler QR do cliente</button>
         <div id="area-leitor" hidden style="margin-top:12px">

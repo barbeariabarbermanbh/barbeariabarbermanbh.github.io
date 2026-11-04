@@ -12,6 +12,7 @@
           <div class="campo"><label for="senha">Senha</label><input id="senha" type="password" autocomplete="current-password"></div>
           <button class="btn btn-pri btn-bloco" type="submit">Entrar</button>
         </form>
+        ${!BM_DADOS.demo && BM_DADOS.entrarEquipeGoogle ? `<button class="btn btn-sec btn-bloco" id="eq-google" style="margin-top:10px">Administração: entrar com Google</button>` : ''}
       </div>
       ${BM_DADOS.demo ? `<div class="caixa" style="margin-top:14px;font-size:14px;color:var(--texto-2)">
         <b style="color:var(--texto)">Acessos de demonstração</b> (senha <b style="color:var(--texto)">1234</b>):<br>
@@ -25,11 +26,16 @@
       try { aoEntrar(await BM_DADOS.entrarEquipe(U.$('#login').value, U.$('#senha').value)); }
       catch (err) { U.$('#erro').textContent = err.message; }
     });
+    const g = U.$('#eq-google');
+    if (g) g.addEventListener('click', async () => {
+      try { aoEntrar(await BM_DADOS.entrarEquipeGoogle()); }
+      catch (err) { U.$('#erro').textContent = err.message; }
+    });
   };
 
   U.barraTopo = (eq, links) => `<header class="barra-topo">
-    <div class="quem"><b>${U.esc(eq.nome)}</b><br>${eq.papel === 'dono' ? 'Dono' : 'Barbeiro'} ·
-      <button class="link-btn" data-trocar-senha style="padding:0;min-height:0;font-size:13px">trocar senha</button></div>
+    <div class="quem"><b>${U.esc(eq.nome)}</b><br>${eq.papel === 'dono' ? 'Administração' : 'Barbeiro'}${eq.google ? ' · conta Google' : ` ·
+      <button class="link-btn" data-trocar-senha style="padding:0;min-height:0;font-size:13px">trocar senha</button>`}</div>
     <nav>${links}<button class="btn btn-sec" id="sair-eq">Sair</button></nav></header>`;
 
   // "trocar senha" (qualquer tela da equipe)
