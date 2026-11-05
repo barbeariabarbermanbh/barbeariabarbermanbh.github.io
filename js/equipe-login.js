@@ -12,6 +12,7 @@
           <div class="campo"><label for="senha">Senha</label><input id="senha" type="password" autocomplete="current-password"></div>
           <button class="btn btn-pri btn-bloco" type="submit">Entrar</button>
         </form>
+        <p style="text-align:center;margin:6px 0 0"><button class="link-btn" id="esqueci">Esqueci minha senha</button></p>
         ${!BM_DADOS.demo && BM_DADOS.entrarEquipeGoogle ? `<button class="btn btn-sec btn-bloco" id="eq-google" style="margin-top:10px">Administração: entrar com Google</button>` : ''}
       </div>
       ${BM_DADOS.demo ? `<div class="caixa" style="margin-top:14px;font-size:14px;color:var(--texto-2)">
@@ -26,6 +27,7 @@
       try { aoEntrar(await BM_DADOS.entrarEquipe(U.$('#login').value, U.$('#senha').value)); }
       catch (err) { U.$('#erro').textContent = err.message; }
     });
+    U.$('#esqueci').addEventListener('click', () => esqueciSenha(U.$('#login').value));
     const g = U.$('#eq-google');
     if (g) g.addEventListener('click', async () => {
       try { aoEntrar(await BM_DADOS.entrarEquipeGoogle()); }
@@ -33,7 +35,32 @@
     });
   };
 
-  U.barraTopo = (eq, links) => `<header class="barra-topo">
+  // Esqueci a senha: link por e-mail (barbeiro com e-mail cadastrado) ou WhatsApp da administração
+  function esqueciSenha(loginDigitado) {
+    const w = BM_CONFIG.whatsapp ? U.linkWhats(BM_CONFIG.whatsapp, 'Olá! Sou da equipe e esqueci a senha da Área do barbeiro. Meu usuário é: ') : '';
+    U.modal(`<h2>Esqueci minha senha</h2>
+      <p style="margin-top:0">Digite seu usuário. Mandamos um link para o seu e-mail cadastrado para você criar uma senha nova.</p>
+      <form id="f-esq" novalidate>
+        <div class="msg-erro" id="erro-esq" role="alert"></div>
+        <div class="campo"><label for="esq-login">Usuário ou e-mail</label><input id="esq-login" autocapitalize="none" autocomplete="username" value="${U.esc(loginDigitado || '')}"></div>
+        <button class="btn btn-pri btn-bloco">Enviar link por e-mail</button>
+      </form>
+      ${w ? `<p style="text-align:center;margin:14px 0 4px;font-size:14px;color:var(--texto-2)">Não tem e-mail cadastrado ou o link não chegou?</p>
+        <a class="btn btn-whats btn-bloco" href="${w}" target="_blank" rel="noopener">${U.svgWhats()} Falar com a administração</a>` : ''}
+      <div class="modal-botoes"><button type="button" class="btn btn-sec" data-fechar>Fechar</button></div>`, (m, fechar) => {
+      U.$('#f-esq', m).addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const er = U.$('#erro-esq', m), b = U.$('#f-esq button', m);
+        er.textContent = ''; b.disabled = true;
+        try {
+          const email = await BM_DADOS.recuperarSenhaEquipe(U.$('#esq-login', m).value);
+          fechar(); U.toast(`Link enviado para ${email}. Veja também a caixa de spam.`, 'ok');
+        } catch (err) { er.textContent = err.message; b.disabled = false; }
+      });
+    });
+  }
+
+  U.barraTopo =(eq, links) => `<header class="barra-topo">
     <div class="quem"><b>${U.esc(eq.nome)}</b><br>${eq.papel === 'dono' ? 'Administração' : 'Barbeiro'}${eq.google ? ' · conta Google' : ` ·
       <button class="link-btn" data-trocar-senha style="padding:0;min-height:0;font-size:13px">trocar senha</button>`}</div>
     <nav>${links}<button class="btn btn-sec" id="sair-eq">Sair</button></nav></header>`;

@@ -4,7 +4,7 @@ import { initializeApp, deleteApp } from 'https://www.gstatic.com/firebasejs/10.
 import {
   getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut,
   GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, setPersistence, browserLocalPersistence,
-  EmailAuthProvider, reauthenticateWithCredential, updatePassword
+  EmailAuthProvider, reauthenticateWithCredential, updatePassword, sendPasswordResetEmail
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {
   getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, collection, collectionGroup, query, where, orderBy, limit,
@@ -16,6 +16,17 @@ const app = initializeApp(CFG);
 const auth = getAuth(app);
 const db = getFirestore(app);
 setPersistence(auth, browserLocalPersistence).catch(() => {});
+auth.languageCode = 'pt-BR'; // e-mails do Firebase (redefinir senha) em português
+
+// Barbeiro entra com o usuário; o e-mail de login dele fica em logins/{usuario}.
+// Acessos antigos (sem e-mail cadastrado) usam o e-mail interno <usuario>@equipe…
+async function emailDaEquipe(login) {
+  login = String(login).trim().toLowerCase();
+  if (login.includes('@')) return login;
+  const s = await getDoc(doc(db, 'logins', login)).catch(() => null);
+  return s && s.exists() && s.data().email ? s.data().email : login + '@equipe.barbermanbh.app';
+}
+const EMAIL_OK = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 const DOM_CLI = '@cliente.barbermanbh.app';
 const DOM_EQ = '@equipe.barbermanbh.app';
@@ -264,8 +275,7 @@ const D = {
   },
 
   async entrarEquipe(login, senha) {
-    login = String(login).trim().toLowerCase();
-    const email = login.includes('@') ? login : login + DOM_EQ;
+    const email = await emailDaEquipe(login);
     try {
       const r = await signInWithEmailAndPassword(auth, email, senha);
       await carregarPerfil(r.user);
@@ -285,6 +295,21 @@ const D = {
   },
   sairEquipe() { perfilEq = null; signOut(auth); },
 
+  // Esqueci a senha (equipe): o Firebase manda um link para o e-mail cadastrado do barbeiro.
+  async recuperarSenhaEquipe(login) {
+    if (!String(login || '').trim()) throw erro('DADOS', 'Digite seu usuário ou e-mail.');
+    const email = await emailDaEquipe(login);
+    if (email.endsWith(DOM_EQ)) throw erro('SEM_EMAIL', 'Esse acesso não tem e-mail cadastrado. Fale com a administração.');
+    // mostra o e-mail mascarado (c****@gmail.com) para o barbeiro saber onde olhar
+    const mascarado = email.replace(/^(.)[^@]*(@.*)$/, (_, a, b) => a + '****' + b);
+    try { await sendPasswordResetEmail(auth, email); }
+    catch (e) {
+      if (/user-not-found|invalid-email/.test(e.code)) return mascarado; // não revela se o acesso existe
+      throw traduzAuth(e);
+    }
+    return mascarado;
+  },
+
   async trocarSenha(atual, nova) {
     if (!usuario || !usuario.email) throw erro('SEM_SESSAO', 'Entre novamente.');
     if (String(nova).length < 6) throw erro('SENHA_CURTA', 'A senha nova precisa ter pelo menos 6 caracteres.');
@@ -301,7 +326,7 @@ const D = {
     const dig = U.soDigitos(t);
     const sem = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
     const r = !t ? lista : lista.filter((c) =>
-      sem(c.nome).includes(sem(t)) || c.uid.toLowerCase() === t.replace(/^barberman:/, '').toLowerCase() ||
+      sem(c.nome).includes(sem(t)) || c.uid.toLowerCase() === t.replace(/^barberman:/, '').replace(/\s+/g, '') ||
       (dig.length >= 3 && (c.cpf.includes(dig) || c.whatsapp.includes(dig))));
     return r.map((c) => ({ ...c })).sort((a, b) => (b.ultimaVisita || 0) - (a.ultimaVisita || 0));
   },
@@ -346,22 +371,34 @@ const D = {
   async equipe() {
     exigirDono();
     const s = await getDocs(collection(db, 'equipe'));
-    return s.docs.map((d) => ({ id: d.id, nome: d.data().nome, papel: d.data().papel, login: d.data().login, ativo: d.data().ativo !== false }));
+    return s.docs.map((d) => ({ id: d.id, nome: d.data().nome, papel: d.data().papel, login: d.data().login,
+      email: d.data().email || '', telefone: d.data().telefone || '', ativo: d.data().ativo !== false }));
   },
 
   // Cria o login do barbeiro numa segunda instância do Firebase, para o dono não ser deslogado.
-  async criarBarbeiro(nome, login, senha) {
+  // O e-mail real do barbeiro vira o login dele (assim o "esqueci minha senha" funciona).
+  async criarBarbeiro(nome, login, senha, contato = {}) {
     exigirDono();
     nome = String(nome).trim(); login = String(login).trim().toLowerCase();
-    if (!nome || !/^[a-z0-9._-]{2,30}$/.test(login)) throw erro('DADOS', 'Preencha o nome e um usuário simples (letras minúsculas, sem espaço).');
+    const email = String(contato.email || '').trim().toLowerCase();
+    const telefone = U.soDigitos(contato.telefone);
+    if (String(nome).split(/\s+/).length < 2) throw erro('DADOS', 'Digite nome e sobrenome do barbeiro.');
+    if (!/^[a-z0-9._-]{2,30}$/.test(login)) throw erro('DADOS', 'Escolha um usuário simples (letras minúsculas, sem espaço).');
+    if (!EMAIL_OK.test(email)) throw erro('EMAIL', 'Confira o e-mail do barbeiro.');
+    if (telefone.length < 10) throw erro('WHATS', 'Confira o WhatsApp do barbeiro com DDD.');
     if (String(senha).length < 6) throw erro('SENHA_CURTA', 'A senha precisa ter pelo menos 6 caracteres.');
+    const ja = await getDoc(doc(db, 'logins', login));
+    if (ja.exists()) throw erro('EXISTE', 'Esse usuário já existe.');
     const app2 = initializeApp(CFG, 'novo-barbeiro-' + Date.now());
     try {
       const auth2 = getAuth(app2);
       let uid;
-      try { uid = (await createUserWithEmailAndPassword(auth2, login + DOM_EQ, senha)).user.uid; }
-      catch (e) { if (/email-already-in-use/.test(e.code)) throw erro('EXISTE', 'Esse usuário já existe.'); throw traduzAuth(e); }
-      await setDoc(doc(db, 'equipe', uid), { nome, papel: 'barbeiro', login, ativo: true });
+      try { uid = (await createUserWithEmailAndPassword(auth2, email, senha)).user.uid; }
+      catch (e) { if (/email-already-in-use/.test(e.code)) throw erro('EXISTE', 'Esse e-mail já tem um acesso.'); throw traduzAuth(e); }
+      const b = writeBatch(db);
+      b.set(doc(db, 'equipe', uid), { nome, papel: 'barbeiro', login, email, telefone, ativo: true });
+      b.set(doc(db, 'logins', login), { email });
+      try { await b.commit(); } catch (e) { throw traduzAuth(e); }
       await signOut(auth2);
     } finally { deleteApp(app2).catch(() => {}); }
     return true;

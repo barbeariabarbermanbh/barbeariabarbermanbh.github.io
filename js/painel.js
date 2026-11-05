@@ -165,13 +165,15 @@
     const l = await D.equipe();
     conteudo().innerHTML = `<div class="grade-2">
       <div><div class="secao-titulo"><h2>Equipe</h2></div>
-        ${l.map((e) => `<div class="item-cli" style="margin-top:8px;cursor:default"><div class="dados"><b>${U.esc(e.nome)}</b><small>usuário: ${U.esc(e.login)} · ${e.papel === 'dono' ? 'Administração' : 'Barbeiro'}</small></div>
+        ${l.map((e) => `<div class="item-cli" style="margin-top:8px;cursor:default"><div class="dados"><b>${U.esc(e.nome)}</b><small>usuário: ${U.esc(e.login)} · ${e.papel === 'dono' ? 'Administração' : 'Barbeiro'}${e.papel !== 'dono' && e.email ? `<br>${U.esc(e.email)}` : ''}${e.telefone ? ` · ${U.fmtTel(e.telefone)}` : ''}</small></div>
           ${e.id === eq.id ? '<span class="pilula">você</span>' : `<button class="btn ${e.ativo ? 'btn-sec' : 'btn-pri'}" data-at="${e.id}" data-v="${e.ativo ? 0 : 1}" style="min-height:40px">${e.ativo ? 'Desativar' : 'Reativar'}</button>`}</div>`).join('')}
       </div>
       <form class="caixa" id="f-novo" novalidate><h2 style="font-size:18px">Novo barbeiro</h2>
         <div class="msg-erro" id="erro"></div>
-        <div class="campo"><label for="n-nome">Nome (aparece no histórico)</label><input id="n-nome"></div>
-        <div class="campo"><label for="n-login">Usuário</label><input id="n-login" autocapitalize="none"></div>
+        <div class="campo"><label for="n-nome">Nome e sobrenome</label><input id="n-nome" autocomplete="off"><span class="dica">Aparece no histórico do cliente.</span></div>
+        <div class="campo"><label for="n-login">Usuário</label><input id="n-login" autocapitalize="none" autocomplete="off"><span class="dica">Ex.: caique. Letras minúsculas, sem espaço.</span></div>
+        <div class="campo"><label for="n-email">E-mail do barbeiro</label><input id="n-email" type="email" inputmode="email" autocapitalize="none" autocomplete="off"><span class="dica">Se ele esquecer a senha, o link para criar outra chega aqui.</span></div>
+        <div class="campo"><label for="n-tel">WhatsApp do barbeiro</label><input id="n-tel" inputmode="tel" autocomplete="off" placeholder="(31) 99999-9999"></div>
         <div class="campo"><label for="n-senha">Senha inicial</label><input id="n-senha" type="text" autocomplete="off"><span class="dica">Mínimo de 6 caracteres. Passe para o barbeiro pessoalmente.</span></div>
         <button class="btn btn-pri btn-bloco">Criar acesso</button></form></div>`;
     U.$$('[data-at]').forEach((b) => b.addEventListener('click', async () => {
@@ -179,9 +181,14 @@
     }));
     U.$('#f-novo').addEventListener('submit', async (e) => {
       e.preventDefault();
-      try { await D.criarBarbeiro(U.$('#n-nome').value, U.$('#n-login').value, U.$('#n-senha').value); U.toast('Barbeiro criado.', 'ok'); equipe(); }
-      catch (err) { U.$('#erro').textContent = err.message; }
+      const b = U.$('#f-novo button'); b.disabled = true;
+      try {
+        await D.criarBarbeiro(U.$('#n-nome').value, U.$('#n-login').value, U.$('#n-senha').value,
+          { email: U.$('#n-email').value, telefone: U.$('#n-tel').value });
+        U.toast('Barbeiro criado.', 'ok'); equipe();
+      } catch (err) { U.$('#erro').textContent = err.message; b.disabled = false; }
     });
+    U.mascara(U.$('#n-tel'), 'tel');
   }
 
   // ---------------- CONFIGURAÇÕES ----------------

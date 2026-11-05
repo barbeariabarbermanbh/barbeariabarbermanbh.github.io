@@ -108,11 +108,18 @@
     U.$('#area-leitor').hidden = false; U.$('#ler').hidden = true;
     leitor = new Html5Qrcode('leitor');
     try {
+      let avisouEm = 0, lido = false;
       await leitor.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 230, height: 230 } }, (txt) => {
-        const m = /^BARBERMAN:([A-Z0-9]{4,})$/.exec(txt.trim());
-        if (!m) { U.toast('Esse QR não é de um cartão BarbermaN.', 'erro'); return; }
+        if (lido) return;
+        const uid = U.lerQrCartao(txt);
+        if (!uid) {
+          // a câmera lê várias vezes por segundo: avisa uma vez só a cada 4 s
+          if (Date.now() - avisouEm > 4000) { avisouEm = Date.now(); U.toast('Esse QR não é de um cartão BarbermaN.', 'erro'); }
+          return;
+        }
+        lido = true;
         if (navigator.vibrate) navigator.vibrate(80);
-        pararLeitor(); abrirFicha(m[1]);
+        pararLeitor(); abrirFicha(uid);
       });
     } catch (e) {
       pararLeitor();

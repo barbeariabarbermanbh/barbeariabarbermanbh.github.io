@@ -94,9 +94,17 @@
   </svg>`;
 
   // Avisos rápidos (no lugar de alert)
+  // QR do cartão: "BARBERMAN:<código>". O código do Firebase tem maiúsculas e minúsculas.
+  U.lerQrCartao = (txt) => {
+    const m = /^barberman:([A-Za-z0-9]{4,64})$/i.exec(String(txt || '').trim());
+    return m ? m[1] : null;
+  };
+
   U.toast = (msg, tipo = '') => {
     let box = U.$('#toasts');
     if (!box) { box = document.createElement('div'); box.id = 'toasts'; box.setAttribute('aria-live', 'polite'); document.body.appendChild(box); }
+    // a mesma mensagem não empilha: se já está na tela, não repete
+    if ([...box.children].some((t) => t.textContent === msg && !t.classList.contains('sai'))) return;
     const t = document.createElement('div');
     t.className = 'toast ' + tipo;
     t.textContent = msg;

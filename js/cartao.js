@@ -162,16 +162,18 @@
           ${pend.cpf ? '' : `<div class="campo"><label for="cpf">CPF</label><input id="cpf" inputmode="numeric" placeholder="000.000.000-00"><span class="dica">Usado só para identificar seu cartão.</span></div>`}
           <div class="campo"><label for="whats">WhatsApp</label><input id="whats" inputmode="tel" autocomplete="tel" placeholder="(31) 99999-9999"></div>
           <div class="campo"><label for="nasc">Data de nascimento</label><input id="nasc" type="date" max="${new Date().toISOString().slice(0, 10)}"><span class="dica">No seu aniversário tem surpresa 😉</span></div>
-          <label class="check"><input type="checkbox" id="promo" checked> Quero receber promoções e novidades da BarbermaN pelo WhatsApp.</label>
-          <label class="check"><input type="checkbox" id="termos"> Li e aceito que a barbearia guarde meus dados para o cartão fidelidade (<button type="button" class="link-btn" id="ver-priv" style="padding:0;min-height:0">ver como usamos</button>).</label>
-          <button class="btn btn-pri btn-bloco" type="submit">Ativar meu cartão</button>
+          <label class="check"><input type="checkbox" id="promo" checked><span>Quero receber promoções e novidades da BarbermaN pelo WhatsApp.</span></label>
+          <label class="check"><input type="checkbox" id="termos"><span>Li e aceito que a barbearia guarde meus dados para o cartão fidelidade <span style="white-space:nowrap">(<button type="button" class="link-inline" id="ver-priv">ver como usamos</button>).</span></span></label>
+          <button class="btn btn-pri btn-bloco" type="submit" id="ativar" disabled>Ativar meu cartão</button>
         </form>
         <p style="text-align:center;margin:10px 0 0"><button class="link-btn" id="sair">Cancelar</button></p>
       </div>`;
     U.mascara(U.$('#whats'), 'tel');
     if (U.$('#cpf')) U.mascara(U.$('#cpf'), 'cpf');
     U.$('#sair').addEventListener('click', () => { D.sairCliente(); telaEntrada(); });
-    U.$('#ver-priv').addEventListener('click', privacidade);
+    U.$('#ver-priv').addEventListener('click', (e) => { e.preventDefault(); privacidade(); });
+    // "Ativar meu cartão" só acende depois do aceite dos dados
+    U.$('#termos').addEventListener('change', () => { U.$('#ativar').disabled = !U.$('#termos').checked; });
     U.$('#form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const erroEl = U.$('#erro'); erroEl.textContent = '';
@@ -264,7 +266,7 @@
     catch (e) { svg = '<p style="color:#000">Não foi possível gerar o QR. Diga o código abaixo ao barbeiro.</p>'; }
     U.modal(`<h2 style="text-align:center">Mostre ao barbeiro</h2>
       <div class="qr-caixa">${svg}</div>
-      <div class="codigo">${cli.uid}</div>
+      <div class="codigo">${U.esc(cli.uid.match(/.{1,4}/g).join(' '))}</div>
       <p style="text-align:center;margin-top:0;font-size:14px">Ele lê o código e o carimbo aparece aqui na hora.</p>
       <div class="modal-botoes"><button class="btn btn-pri" data-fechar>Fechar</button></div>`);
   }

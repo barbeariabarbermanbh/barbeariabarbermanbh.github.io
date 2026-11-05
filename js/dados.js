@@ -199,6 +199,10 @@
       return espera({ id: e.id, nome: e.nome, papel: e.papel });
     },
     sairEquipe() { sess(S_EQUIPE, null); },
+    async recuperarSenhaEquipe(login) {
+      if (!String(login || '').trim()) throw erro('DADOS', 'Digite seu usuário ou e-mail.');
+      return espera('seu e-mail (demonstração: nada é enviado)');
+    },
     async trocarSenha(atual, nova) {
       ler(); const eu = D.equipeLogada(); if (!eu) throw erro('SEM_SESSAO', 'Entre novamente.');
       const e = db.equipe.find((x) => x.id === eu.id);
@@ -213,7 +217,7 @@
       const dig = U.soDigitos(t);
       const sem = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
       const lista = !t ? db.clientes : db.clientes.filter((c) =>
-        sem(c.nome).includes(sem(t)) || c.uid.toLowerCase() === t.replace(/^barberman:/, '') ||
+        sem(c.nome).includes(sem(t)) || c.uid.toLowerCase() === t.replace(/^barberman:/, '').replace(/\s+/g, '') ||
         (dig.length >= 3 && (c.cpf.includes(dig) || c.whatsapp.includes(dig))));
       return espera(lista.map(publico).sort((a, b) => (b.ultimaVisita || 0) - (a.ultimaVisita || 0)));
     },
@@ -247,13 +251,16 @@
 
     async todasVisitas() { ler(); D._dono(); const r = []; Object.entries(db.visitas).forEach(([uid, l]) => l.forEach((v) => r.push({ ...v, uid }))); return espera(r); },
     async equipe() { ler(); D._dono(); return espera(db.equipe.map(({ senha, ...e }) => e)); },
-    async criarBarbeiro(nome, login, senha) {
+    async criarBarbeiro(nome, login, senha, contato = {}) {
       ler(); D._dono();
       login = String(login).trim().toLowerCase();
       if (!nome.trim() || !login) throw erro('DADOS', 'Preencha nome e usuário.');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(contato.email || '').trim())) throw erro('EMAIL', 'Confira o e-mail do barbeiro.');
+      if (U.soDigitos(contato.telefone).length < 10) throw erro('WHATS', 'Confira o WhatsApp do barbeiro com DDD.');
       if (String(senha).length < 6) throw erro('SENHA_CURTA', 'A senha precisa ter pelo menos 6 caracteres.');
       if (db.equipe.some((x) => x.login === login)) throw erro('EXISTE', 'Esse usuário já existe.');
-      db.equipe.push({ id: 'E' + gerarId(), nome: nome.trim(), papel: 'barbeiro', login, senha, ativo: true });
+      db.equipe.push({ id: 'E' + gerarId(), nome: nome.trim(), papel: 'barbeiro', login, senha, ativo: true,
+        email: String(contato.email).trim().toLowerCase(), telefone: U.soDigitos(contato.telefone) });
       salvar(); return espera(true);
     },
     async ativarBarbeiro(id, ativo) { ler(); const eu = D._dono(); if (id === eu.id) throw erro('PERMISSAO', 'Você não pode desativar a si mesmo.'); const e = db.equipe.find((x) => x.id === id); e.ativo = ativo; salvar(); return espera(true); },
